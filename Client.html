@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8' />
+<style type="text/css">
+<!--
+.chat_wrapper { 
+    background: #0090C0; border: 1px solid #909090; padding: 4px;
+    width: 500px;        margin-right: auto;        margin-left: auto;
+    font: 12px verdana,tahoma,arial,sans-serif;
+}
+.chat_wrapper .message_box {
+    background: #FFFFFF; border: 1px solid #909090; padding: 10px;
+    height: 150px;       overflow: auto;
+}
+.chat_wrapper .panel input {
+    padding: 2px 2px 2px 5px;
+}
+.cmd {
+    background: #FFFFD0; border: 1px solid #909090; padding-left: 8px;
+}
+.system_msg   {color: #BDBDBD; font-style: italic;}
+.user_name    {font-weight:bold;}
+.user_message {color: #88B6E0;}
+-->
+</style>
+<script>
+function getcolor() {   
+var colours = ['00007F','0000FF','007F00','00FF00','7F0000',
+               '007F7F','7F007F','7F7F00','7F7F7F','FF0000'];
+var ri = Math.floor(Math.random() * colours.length); 
+var user_colour = colours[ri];
+return user_colour;
+}
+</script>
+
+</head>
+<body>  
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+
+<script language="javascript" type="text/javascript">  
+$(document).ready(function() {              // creazione oggetto WebSocket
+   var usrcolor = getcolor();
+   var wsUri = "ws://192.168.1.5:5001/chat-server.php";   
+   websocket = new WebSocket(wsUri); 
+    
+   websocket.onopen = function(ev) {        // apertura connessione 
+      $('#message_box').append("<div class=\"system_msg\">Connesso!</div>");
+   }
+
+   $('#send-btn').click(function() {        // gestione pulsante send   
+      var mymessage = $('#message').val();  // testo del messaggio
+      var myname = $('#name').val();        // nome utente
+        
+      if (myname == "") {                   // nome vuoto ? 
+         alert("Digita il tuo nome, per favore!");
+         return;
+      }
+      if (mymessage == "") {                // messaggio vuoto ?
+            alert("Digita il messaggio, per favore!");
+            return;
+      }
+        
+      var msg = {                           // dati in formato JSON
+      message: mymessage,  name: myname,  color: usrcolor
+      };
+      websocket.send(JSON.stringify(msg));  // conversione ed invio dati
+   });
+    
+   websocket.onmessage = function(ev) {     // messaggio ricevuto dal server ?
+      var msg = JSON.parse(ev.data);        // PHP invia i dati JSON 
+      var type = msg.type;                  // tipo del messaggio
+      var umsg = msg.message;               // testo del messaggio
+      var uname = msg.name;                 // nome utente
+      var ucolor = msg.color;               // colore
+
+      if (type == 'usermsg') {
+         st1 = "<div><span class=\"user_name\" style=\"color:#" + ucolor + "\">";
+         st1 = st1 + uname + "</span> : <span class=\"user_message\">";
+         st1 = st1 + umsg + "</span></div>";         
+         $('#message_box').append(st1);
+      }
+      if (type == 'system') {
+         $('#message_box').append("<div class=\"system_msg\">"+umsg+"</div>");
+      }
+      $('#message').val('');                //reset del testo
+   };
+    
+   websocket.onerror = function(ev) {
+      $('#message_box').append("<div class=\"system_error\">Errore - "+ev.data+"</div>");
+   }; 
+   websocket.onclose = function(ev) {
+      $('#message_box').append("<div class=\"system_msg\">Connessione Chiusa</div>");
+   }; 
+});
+</script>
+
+<div class="chat_wrapper">
+   <div class="message_box" id="message_box"></div>
+   <div class="panel">
+      <input type="text" name="name" id="name" 
+             placeholder="Nome Utente" maxlength="10" style="width:20%"  />
+      <input type="text" name="message" id="message" 
+             placeholder="Messaggio" maxlength="80" style="width:60%" />
+      <button id="send-btn">Invia</button>
+   </div>
+   <div class="cmd">
+   <p><b>Messaggi comando</b>: help, date, time, random, port, quit.</p>
+   </div>
+</div>
+
+</body>
+</html>
